@@ -342,12 +342,12 @@ and transl_exp0 e =
       let targ = transl_exp arg in
       begin match lbl.lbl_repres with
           Record_regular | Record_inlined _ ->
-          Lprim (Pfield (lbl.lbl_pos, maybe_pointer e, lbl.lbl_mut),
+          Lprim (Pfield (lbl.lbl_pos, maybe_pointer e, lbl.lbl_mut, Frecord_access lbl.lbl_name),
                   [targ], e.exp_loc)
         | Record_unboxed _ -> targ
         | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [targ], e.exp_loc)
         | Record_extension _ ->
-          Lprim (Pfield (lbl.lbl_pos + 1, maybe_pointer e, lbl.lbl_mut),
+          Lprim (Pfield (lbl.lbl_pos + 1, maybe_pointer e, lbl.lbl_mut, Fnone),
                   [targ], e.exp_loc)
       end
   | Texp_setfield(arg, _, lbl, newval) ->
@@ -438,7 +438,7 @@ and transl_exp0 e =
       Lapply{ap_should_be_tailcall=false;
              ap_loc=loc;
              ap_func=
-               Lprim(Pfield (0, Pointer, Mutable),
+               Lprim(Pfield (0, Pointer, Mutable, Fnone),
                      [transl_class_path loc e.exp_env cl], loc);
              ap_args=[lambda_unit];
              ap_inlined=Default_inline;
@@ -561,7 +561,7 @@ and transl_exp0 e =
           let body, _ =
             List.fold_left (fun (body, pos) id ->
               Llet(Alias, Pgenval, id,
-                   Lprim(Pfield (pos, Pointer, Mutable), [Lvar oid], od.open_loc),
+                   Lprim(Pfield (pos, Pointer, Mutable, Fnone), [Lvar oid], od.open_loc),
                    body),
               pos + 1
             ) (transl_exp e, 0) (bound_value_identifiers od.open_bound_items)
@@ -813,17 +813,17 @@ and transl_record loc env fields repres opt_init_expr =
     let init_id = Ident.create_local "init" in
     let lv =
       Array.mapi
-        (fun i (_, definition) ->
+        (fun i (lbl, definition) ->
            match definition with
            | Kept (typ, mut) ->
                let field_kind = value_kind env typ in
                let access =
                  match repres with
                    Record_regular | Record_inlined _ ->
-                     Pfield (i, maybe_pointer_type env typ, mut)
+                     Pfield (i, maybe_pointer_type env typ, mut, Frecord_access lbl.lbl_name)
                  | Record_unboxed _ -> assert false
                  | Record_extension _ ->
-                     Pfield (i + 1, maybe_pointer_type env typ, mut)
+                     Pfield (i + 1, maybe_pointer_type env typ, mut, Fnone)
                  | Record_float -> Pfloatfield i in
                Lprim(access, [Lvar init_id], loc), field_kind
            | Overridden (_lid, expr) ->

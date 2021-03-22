@@ -120,8 +120,8 @@ let primitives_table =
     "%loc_LINE", Loc Loc_LINE;
     "%loc_POS", Loc Loc_POS;
     "%loc_MODULE", Loc Loc_MODULE;
-    "%field0", Primitive (Pfield(0, Pointer, Mutable), 1);
-    "%field1", Primitive (Pfield(1, Pointer, Mutable), 1);
+    "%field0", Primitive (Pfield(0, Pointer, Mutable, Fnone), 1);
+    "%field1", Primitive (Pfield(1, Pointer, Mutable, Fnone), 1);
     "%setfield0", Primitive ((Psetfield(0, Pointer, Assignment)), 2);
     "%makeblock", Primitive ((Pmakeblock(0, Immutable, None)), 1);
     "%makemutable", Primitive ((Pmakeblock(0, Mutable, None)), 1);
@@ -427,12 +427,12 @@ let specialize_primitive env ty ~has_constant_constructor prim =
       | Pointer -> None
       | Immediate -> Some (Primitive (Psetfield(n, Immediate, init), arity))
     end
-  | Primitive (Pfield (n, Pointer, mut), arity), _ ->
+  | Primitive (Pfield (n, Pointer, mut, _), arity), _ ->
       (* try strength reduction based on the *result type* *)
       let is_int = match is_function_type env ty with
         | None -> Pointer
         | Some (_p1, rhs) -> maybe_pointer_type env rhs in
-      Some (Primitive (Pfield (n, is_int, mut), arity))
+      Some (Primitive (Pfield (n, is_int, mut, Fnone), arity))
   | Primitive (Parraylength t, arity), [p] -> begin
       let array_type = glb_array_type t (array_type_kind env p) in
       if t = array_type then None
