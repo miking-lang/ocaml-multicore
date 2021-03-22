@@ -45,6 +45,11 @@ type is_safe =
   | Safe
   | Unsafe
 
+type field_info =
+  | Fnone
+  | Fmodule_access of string
+  | Frecord_access of string
+
 type primitive =
   | Pidentity
   | Pbytes_to_string
@@ -57,7 +62,7 @@ type primitive =
   | Psetglobal of Ident.t
   (* Operations on heap blocks *)
   | Pmakeblock of int * mutable_flag * block_shape
-  | Pfield of int * immediate_or_pointer * mutable_flag
+  | Pfield of int * immediate_or_pointer * mutable_flag * field_info
   | Pfield_computed
   | Psetfield of int * immediate_or_pointer * initialization_or_assignment
   | Psetfield_computed of immediate_or_pointer * initialization_or_assignment

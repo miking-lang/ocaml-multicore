@@ -1057,7 +1057,7 @@ let rec close ({ backend; fenv; cenv } as env) lam =
       let dbg = Debuginfo.from_location loc in
       check_constant_result (getglobal dbg id)
                             (Compilenv.global_approx id)
-  | Lprim(Pfield (n, ptr, mut), [lam], loc) ->
+  | Lprim(Pfield (n, ptr, mut, _), [lam], loc) ->
       let (ulam, approx) = close env lam in
       let dbg = Debuginfo.from_location loc in
       check_constant_result (Uprim(P.Pfield (n, ptr, mut), [ulam], dbg))

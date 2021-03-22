@@ -1534,7 +1534,7 @@ let make_field_args loc binding_kind arg first_pos last_pos argl =
     if pos > last_pos then
       argl
     else
-      (Lprim (Pfield(pos, Pointer, Immutable), [ arg ], loc),
+      (Lprim (Pfield(pos, Pointer, Immutable, Fnone), [ arg ], loc),
           binding_kind) :: make_args (pos + 1)
   in
   make_args first_pos
@@ -1679,7 +1679,7 @@ let make_variant_matching_nonconst p lab def ctx = function
       and ctx = Context.specialize p ctx in
       { pm =
           { cases = [];
-            args = (Lprim (Pfield(1, Pointer, Immutable), [ arg ], p.pat_loc),
+            args = (Lprim (Pfield(1, Pointer, Immutable, Fnone), [ arg ], p.pat_loc),
                   Alias) :: argl;
             default = def
           };
@@ -1810,7 +1810,7 @@ let inline_lazy_force_cond arg loc =
           Lifthenelse
             ( (* if (tag == Obj.forward_tag) then varg.(0) else ... *)
               test_tag Obj.forward_tag,
-              Lprim (Pfield (0, Pointer, Mutable), [ varg ], loc),
+              Lprim (Pfield (0, Pointer, Mutable, Fnone), [ varg ], loc),
               Lifthenelse
                 (
                   (* ... if tag == Obj.lazy_tag || tag == Obj.forcing_tag then
@@ -1849,7 +1849,7 @@ let inline_lazy_force_switch arg loc =
                 sw_numblocks = 256;
                 (* PR#6033 - tag ranges from 0 to 255 *)
                 sw_blocks =
-                  [ (Obj.forward_tag, Lprim (Pfield(0, Pointer, Mutable),
+                  [ (Obj.forward_tag, Lprim (Pfield(0, Pointer, Mutable, Fnone),
                                              [ varg ], loc));
 
                     (Obj.lazy_tag,
@@ -1933,7 +1933,7 @@ let make_tuple_matching loc arity def = function
         if pos >= arity then
           argl
         else
-          (Lprim (Pfield (pos, Pointer, Immutable), [ arg ], loc), Alias)
+          (Lprim (Pfield (pos, Pointer, Immutable, Fnone), [ arg ], loc), Alias)
           :: make_args (pos + 1)
       in
       { cases = [];
@@ -1985,11 +1985,11 @@ let make_record_matching env loc all_labels def = function
             match lbl.lbl_repres with
             | Record_regular
             | Record_inlined _ ->
-                Lprim (Pfield (lbl.lbl_pos, ptr, lbl.lbl_mut), [ arg ], loc)
+                Lprim (Pfield (lbl.lbl_pos, ptr, lbl.lbl_mut, Fnone), [ arg ], loc)
             | Record_unboxed _ -> arg
             | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [ arg ], loc)
             | Record_extension _ ->
-                Lprim (Pfield (lbl.lbl_pos + 1, ptr, lbl.lbl_mut), [ arg ], loc)
+                Lprim (Pfield (lbl.lbl_pos + 1, ptr, lbl.lbl_mut, Fnone), [ arg ], loc)
           in
           let str =
             match lbl.lbl_mut with
@@ -2718,7 +2718,7 @@ let combine_constructor loc arg ex_pat cstr partial ctx def
                   nonconsts default
               in
               Llet (Alias, Pgenval, tag,
-                    Lprim (Pfield (0, Pointer, Immutable), [ arg ], loc), tests)
+                    Lprim (Pfield (0, Pointer, Immutable, Fnone), [ arg ], loc), tests)
         in
         List.fold_right
           (fun (path, act) rem ->
@@ -2804,7 +2804,7 @@ let call_switcher_variant_constr loc fail arg int_lambda_list =
     ( Alias,
       Pgenval,
       v,
-      Lprim (Pfield (0, Pointer, Immutable), [ arg ], loc),
+      Lprim (Pfield (0, Pointer, Immutable, Fnone), [ arg ], loc),
       call_switcher loc fail (Lvar v) min_int max_int int_lambda_list )
 
 let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
