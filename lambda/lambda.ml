@@ -39,6 +39,11 @@ type is_safe =
   | Safe
   | Unsafe
 
+type field_info =
+  | Fnone
+  | Fmodule_access of string
+  | Frecord_access of string
+
 type primitive =
   | Pidentity
   | Pbytes_to_string
@@ -51,7 +56,7 @@ type primitive =
   | Psetglobal of Ident.t
   (* Operations on heap blocks *)
   | Pmakeblock of int * mutable_flag * block_shape
-  | Pfield of int * immediate_or_pointer * mutable_flag
+  | Pfield of int * immediate_or_pointer * mutable_flag * field_info
   | Pfield_computed
   | Psetfield of int * immediate_or_pointer * initialization_or_assignment
   | Psetfield_computed of immediate_or_pointer * initialization_or_assignment
@@ -637,20 +642,22 @@ let rec patch_guarded patch = function
 
 (* Translate an access path *)
 
-let rec transl_address loc = function
+let rec transl_address loc path = function
   | Env.Aident id ->
       if Ident.global id
       then Lprim(Pgetglobal id, [], loc)
       else Lvar id
   | Env.Adot(addr, pos) ->
-      Lprim(Pfield(pos, Pointer, Immutable),
-                   [transl_address loc addr], loc)
+      Lprim(Pfield(pos, Pointer,
+                   Immutable, Fmodule_access (Path.name path)),
+            [transl_address loc path addr], loc)
 
 let transl_path find loc env path =
   match find path env with
   | exception Not_found ->
       fatal_error ("Cannot find address for: " ^ (Path.name path))
-  | addr -> transl_address loc addr
+  | addr ->
+      transl_address loc path addr
 
 (* Translation of identifiers *)
 
