@@ -643,7 +643,7 @@ let lambda_of_loc kind loc =
           Const_base (Const_int lnum);
           Const_base (Const_int cnum);
           Const_base (Const_int enum);
-        ]))
+        ], Tag_none))
   | Loc_FILE -> Lconst (Const_immstring file)
   | Loc_MODULE ->
     let filename = Filename.basename file in
