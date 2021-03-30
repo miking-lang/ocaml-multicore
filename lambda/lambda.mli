@@ -213,10 +213,14 @@ val equal_value_kind : value_kind -> value_kind -> bool
 
 val equal_boxed_integer : boxed_integer -> boxed_integer -> bool
 
+type tag_info =
+  | Tag_none
+  | Tag_record
+
 type structured_constant =
     Const_base of constant
   | Const_pointer of int
-  | Const_block of int * structured_constant list
+  | Const_block of int * structured_constant list * tag_info
   | Const_float_array of string list
   | Const_immstring of string
 

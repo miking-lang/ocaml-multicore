@@ -3347,7 +3347,7 @@ let partial_function loc () =
                      [ Const_base (Const_string (fname, None));
                        Const_base (Const_int line);
                        Const_base (Const_int char)
-                     ] ))
+                     ], Tag_none ))
             ],
             loc )
       ],
@@ -3452,7 +3452,7 @@ let assign_pat opt nraise catch_ids loc pat lam =
     | Tpat_tuple patl, Lprim (Pmakeblock _, lams, _) ->
         opt := true;
         List.fold_left2 collect acc patl lams
-    | Tpat_tuple patl, Lconst (Const_block (_, scl)) ->
+    | Tpat_tuple patl, Lconst (Const_block (_, scl, Tag_none)) ->
         opt := true;
         let collect_const acc pat sc = collect acc pat (Lconst sc) in
         List.fold_left2 collect_const acc patl scl
