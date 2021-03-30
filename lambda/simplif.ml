@@ -245,8 +245,8 @@ let simplify_exits lam =
          Lprim (Pmakeblock(tag, mut, shape), fields, loc)
       | Pccall { Primitive.prim_name = "caml_obj_with_tag"; _ },
         [Lconst (Const_base (Const_int tag));
-         Lconst (Const_block (_, fields))] ->
-         Lconst (Const_block (tag, fields))
+         Lconst (Const_block (_, fields, Tag_none))] ->
+          Lconst (Const_block (tag, fields, Tag_none))
 
       | _ -> Lprim(p, ll, loc)
      end
@@ -341,7 +341,7 @@ let exact_application {kind; params; _} args =
           if List.length params <> List.length tupled_args
           then None
           else Some tupled_args
-      | [Lconst(Const_block (_, const_args))] ->
+      | [Lconst(Const_block (_, const_args, Tag_none))] ->
           if List.length params <> List.length const_args
           then None
           else Some (List.map (fun cst -> Lconst cst) const_args)
