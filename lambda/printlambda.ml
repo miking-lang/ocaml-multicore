@@ -19,6 +19,10 @@ open Primitive
 open Types
 open Lambda
 
+let print_tag_info = function
+  | Tag_none -> ""
+  | Tag_record -> ":record"
+  | Tag_con -> ":con"
 
 let rec struct_const ppf = function
   | Const_base(Const_int n) -> fprintf ppf "%i" n
@@ -30,12 +34,12 @@ let rec struct_const ppf = function
   | Const_base(Const_int64 n) -> fprintf ppf "%LiL" n
   | Const_base(Const_nativeint n) -> fprintf ppf "%nin" n
   | Const_pointer n -> fprintf ppf "%ia" n
-  | Const_block(tag, [], _) ->
-      fprintf ppf "[%i]" tag
-  | Const_block(tag, sc1::scl, _) ->
+  | Const_block(tag, [], tinfo) ->
+      fprintf ppf "[%i%s]" tag (print_tag_info tinfo)
+  | Const_block(tag, sc1::scl, tinfo) ->
       let sconsts ppf scl =
         List.iter (fun sc -> fprintf ppf "@ %a" struct_const sc) scl in
-      fprintf ppf "@[<1>[%i:@ @[%a%a@]]@]" tag struct_const sc1 sconsts scl
+      fprintf ppf "@[<1>[%i%s:@ @[%a%a@]]@]" tag (print_tag_info tinfo) struct_const sc1 sconsts scl
   | Const_float_array [] ->
       fprintf ppf "[| |]"
   | Const_float_array (f1 :: fl) ->
@@ -160,14 +164,19 @@ let primitive ppf = function
       fprintf ppf "makeblock %i%a" tag block_shape shape
   | Pmakeblock(tag, Mutable, shape) ->
       fprintf ppf "makemutable %i%a" tag block_shape shape
-  | Pfield(n, ptr, mut, _) ->
+  | Pfield(n, ptr, mut, finfo) ->
+      let print_field = function
+        | Fnone -> " "
+        | Fmodule_access s -> sprintf ":module_access(%s) " s
+        | Frecord_access s -> sprintf ":record_access(%s) " s
+      in
       let instr =
         match ptr, mut with
-        | Immediate, _ -> "field_int "
-        | Pointer, Mutable -> "field_mut "
-        | Pointer, Immutable -> "field_imm "
+        | Immediate, _ -> "field_int"
+        | Pointer, Mutable -> "field_mut"
+        | Pointer, Immutable -> "field_imm"
       in
-      fprintf ppf "%s%i" instr n
+      fprintf ppf "%s%s%i" instr (print_field finfo) n
   | Pfield_computed -> fprintf ppf "field_computed"
   | Psetfield(n, ptr, init) ->
       let instr =

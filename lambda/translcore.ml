@@ -332,7 +332,7 @@ and transl_exp0 e =
           (match ll with [v] -> v | _ -> assert false)
       | Cstr_block n ->
           begin try
-            Lconst(Const_block(n, List.map extract_constant ll, Tag_none))
+            Lconst(Const_block(n, List.map extract_constant ll, Tag_con))
           with Not_constant ->
             Lprim(Pmakeblock(n, Immutable, Some shape), ll, e.exp_loc)
           end

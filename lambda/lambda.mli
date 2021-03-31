@@ -216,6 +216,7 @@ val equal_boxed_integer : boxed_integer -> boxed_integer -> bool
 type tag_info =
   | Tag_none
   | Tag_record
+  | Tag_con
 
 type structured_constant =
     Const_base of constant

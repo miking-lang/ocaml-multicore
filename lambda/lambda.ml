@@ -224,6 +224,7 @@ let equal_value_kind x y =
 type tag_info =
   | Tag_none
   | Tag_record
+  | Tag_con
 
 type structured_constant =
     Const_base of constant
