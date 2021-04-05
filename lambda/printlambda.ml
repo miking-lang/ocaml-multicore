@@ -25,6 +25,11 @@ let print_tag_info = function
   | Tag_con s -> sprintf ":con'%s'" s
   | Tag_tuple -> ":tuple"
 
+let print_pointer_info = function
+  | Ptr_none -> ""
+  | Ptr_nil -> ":nil"
+  | Ptr_unit -> ":unit"
+
 let rec struct_const ppf = function
   | Const_base(Const_int n) -> fprintf ppf "%i" n
   | Const_base(Const_char c) -> fprintf ppf "%C" c
@@ -34,7 +39,8 @@ let rec struct_const ppf = function
   | Const_base(Const_int32 n) -> fprintf ppf "%lil" n
   | Const_base(Const_int64 n) -> fprintf ppf "%LiL" n
   | Const_base(Const_nativeint n) -> fprintf ppf "%nin" n
-  | Const_pointer n -> fprintf ppf "%ia" n
+  | Const_pointer(n, pinfo) -> fprintf ppf "%ia%s" n
+                                 (print_pointer_info pinfo)
   | Const_block(tag, [], tinfo) ->
       fprintf ppf "[%i%s]" tag (print_tag_info tinfo)
   | Const_block(tag, sc1::scl, tinfo) ->

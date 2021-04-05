@@ -326,29 +326,36 @@ and transl_exp0 e =
         | [x] -> x
         | _ -> assert false
       end else begin match cstr.cstr_tag with
-        Cstr_constant n ->
-          Lconst(Const_pointer n)
-      | Cstr_unboxed ->
-          (match ll with [v] -> v | _ -> assert false)
-      | Cstr_block n ->
-          begin try
-            Lconst(Const_block(n, List.map extract_constant ll, Tag_con cstr.cstr_name))
-          with Not_constant ->
-            Lprim(Pmakeblock(n, Immutable, Some shape), ll, e.exp_loc)
-          end
-      | Cstr_extension(path, is_const) ->
-          let lam = transl_extension_path e.exp_loc e.exp_env path in
-          if is_const then lam
-          else
-            Lprim(Pmakeblock(0, Immutable, Some (Pgenval :: shape)),
-                  lam :: ll, e.exp_loc)
+          Cstr_constant n ->
+            begin match cstr.cstr_name with
+            | "()" ->
+                Lconst(Const_pointer(n, Ptr_unit))
+            | "[]" ->
+                Lconst(Const_pointer(n, Ptr_nil))
+            | _ ->
+                Lconst(Const_pointer(n, Ptr_none))
+            end
+        | Cstr_unboxed ->
+            (match ll with [v] -> v | _ -> assert false)
+        | Cstr_block n ->
+            begin try
+              Lconst(Const_block(n, List.map extract_constant ll, Tag_con cstr.cstr_name))
+            with Not_constant ->
+              Lprim(Pmakeblock(n, Immutable, Some shape), ll, e.exp_loc)
+            end
+        | Cstr_extension(path, is_const) ->
+            let lam = transl_extension_path e.exp_loc e.exp_env path in
+            if is_const then lam
+            else
+              Lprim(Pmakeblock(0, Immutable, Some (Pgenval :: shape)),
+                    lam :: ll, e.exp_loc)
       end
   | Texp_extension_constructor (_, path) ->
       transl_extension_path e.exp_loc e.exp_env path
   | Texp_variant(l, arg) ->
       let tag = Btype.hash_variant l in
       begin match arg with
-        None -> Lconst(Const_pointer tag)
+        None -> Lconst(Const_pointer(tag, Ptr_none))
       | Some arg ->
           let lam = transl_exp arg in
           try

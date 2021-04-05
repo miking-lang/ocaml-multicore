@@ -221,9 +221,14 @@ type tag_info =
   | Tag_con of string
   | Tag_tuple
 
+type pointer_info =
+  | Ptr_none
+  | Ptr_nil
+  | Ptr_unit
+
 type structured_constant =
     Const_base of constant
-  | Const_pointer of int
+  | Const_pointer of int * pointer_info
   | Const_block of int * structured_constant list * tag_info
   | Const_float_array of string list
   | Const_immstring of string
