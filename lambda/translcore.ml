@@ -180,7 +180,7 @@ let assert_failed exp =
               [Const_base(Const_string (fname, None));
                Const_base(Const_int line);
                Const_base(Const_int char)],
-                              Tag_none))], exp.exp_loc))], exp.exp_loc)
+                              Tag_tuple))], exp.exp_loc))], exp.exp_loc)
 ;;
 
 let rec cut n l =
@@ -316,7 +316,7 @@ and transl_exp0 e =
   | Texp_tuple el ->
       let ll, shape = transl_list_with_shape el in
       begin try
-        Lconst(Const_block(0, List.map extract_constant ll, Tag_none))
+        Lconst(Const_block(0, List.map extract_constant ll, Tag_tuple))
       with Not_constant ->
         Lprim(Pmakeblock(0, Immutable, Some shape), ll, e.exp_loc)
       end

@@ -23,6 +23,7 @@ let print_tag_info = function
   | Tag_none -> ""
   | Tag_record -> ":record"
   | Tag_con s -> sprintf ":con'%s'" s
+  | Tag_tuple -> ":tuple"
 
 let rec struct_const ppf = function
   | Const_base(Const_int n) -> fprintf ppf "%i" n
@@ -169,6 +170,8 @@ let primitive ppf = function
         | Fnone -> " "
         | Fmodule_access s -> sprintf ":module_access(%s) " s
         | Frecord_access s -> sprintf ":record_access(%s) " s
+        | Frecord_inline s -> sprintf ":record_inline(%s) " s
+        | Ftuple -> ":tuple "
       in
       let instr =
         match ptr, mut with

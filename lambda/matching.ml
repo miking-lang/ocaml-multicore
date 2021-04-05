@@ -1934,7 +1934,7 @@ let make_tuple_matching loc arity def = function
         if pos >= arity then
           argl
         else
-          (Lprim (Pfield (pos, Pointer, Immutable, Fnone), [ arg ], loc), Alias)
+          (Lprim (Pfield (pos, Pointer, Immutable, Ftuple), [ arg ], loc), Alias)
           :: make_args (pos + 1)
       in
       { cases = [];

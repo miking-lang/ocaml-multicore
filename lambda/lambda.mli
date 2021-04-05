@@ -49,6 +49,8 @@ type field_info =
   | Fnone
   | Fmodule_access of string
   | Frecord_access of string
+  | Frecord_inline of string
+  | Ftuple
 
 type primitive =
   | Pidentity
@@ -217,6 +219,7 @@ type tag_info =
   | Tag_none
   | Tag_record
   | Tag_con of string
+  | Tag_tuple
 
 type structured_constant =
     Const_base of constant
