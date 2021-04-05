@@ -168,8 +168,8 @@ let primitive ppf = function
   | Pfield(n, ptr, mut, finfo) ->
       let print_field = function
         | Fnone -> " "
-        | Fmodule_access s -> sprintf ":module_access(%s) " s
-        | Frecord_access s -> sprintf ":record_access(%s) " s
+        | Fmodule s -> sprintf ":module(%s) " s
+        | Frecord s -> sprintf ":record(%s) " s
         | Frecord_inline s -> sprintf ":record_inline(%s) " s
         | Ftuple -> ":tuple "
       in

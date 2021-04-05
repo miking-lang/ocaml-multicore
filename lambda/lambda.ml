@@ -41,8 +41,8 @@ type is_safe =
 
 type field_info =
   | Fnone
-  | Fmodule_access of string
-  | Frecord_access of string
+  | Fmodule of string
+  | Frecord of string
   | Frecord_inline of string
   | Ftuple
 
@@ -661,7 +661,7 @@ let rec transl_address loc path = function
       else Lvar id
   | Env.Adot(addr, pos) ->
       Lprim(Pfield(pos, Pointer,
-                   Immutable, Fmodule_access (Path.name path)),
+                   Immutable, Fmodule (Path.name path)),
             [transl_address loc path addr], loc)
 
 let transl_path find loc env path =

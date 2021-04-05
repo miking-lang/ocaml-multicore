@@ -366,7 +366,7 @@ and transl_exp0 e =
       let targ = transl_exp arg in
       begin match lbl.lbl_repres with
           Record_regular | Record_inlined _ ->
-          Lprim (Pfield (lbl.lbl_pos, maybe_pointer e, lbl.lbl_mut, Frecord_access lbl.lbl_name),
+          Lprim (Pfield (lbl.lbl_pos, maybe_pointer e, lbl.lbl_mut, Frecord lbl.lbl_name),
                   [targ], e.exp_loc)
         | Record_unboxed _ -> targ
         | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [targ], e.exp_loc)
@@ -851,7 +851,7 @@ and transl_record loc env fields repres opt_init_expr =
                let access =
                  match repres with
                    Record_regular | Record_inlined _ ->
-                     Pfield (i, maybe_pointer_type env typ, mut, Frecord_access lbl.lbl_name)
+                     Pfield (i, maybe_pointer_type env typ, mut, Frecord lbl.lbl_name)
                  | Record_unboxed _ -> assert false
                  | Record_extension _ ->
                      Pfield (i + 1, maybe_pointer_type env typ, mut, Fnone)

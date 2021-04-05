@@ -47,8 +47,8 @@ type is_safe =
 
 type field_info =
   | Fnone
-  | Fmodule_access of string
-  | Frecord_access of string
+  | Fmodule of string
+  | Frecord of string
   | Frecord_inline of string
   | Ftuple
 
