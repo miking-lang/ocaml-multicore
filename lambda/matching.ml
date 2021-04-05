@@ -1872,7 +1872,8 @@ let inline_lazy_force_switch arg loc =
                           ap_specialised = Default_specialise
                         } )
                   ];
-                sw_failaction = Some varg
+                sw_failaction = Some varg;
+                sw_names = None
               },
               loc ) ) )
 
@@ -2302,7 +2303,8 @@ module SArg = struct
           sw_consts = !l;
           sw_numblocks = 0;
           sw_blocks = [];
-          sw_failaction = None
+          sw_failaction = None;
+          sw_names = None
         },
         loc )
 
@@ -2686,7 +2688,7 @@ let split_extension_cases tag_lambda_list =
   in
   split_rec tag_lambda_list
 
-let combine_constructor loc arg ex_pat cstr partial ctx def
+let combine_constructor sw_names loc arg ex_pat cstr partial ctx def
     (tag_lambda_list, total1, pats) =
   match cstr.cstr_tag with
   | Cstr_extension _ ->
@@ -2780,7 +2782,8 @@ let combine_constructor loc arg ex_pat cstr partial ctx def
                         sw_consts = consts;
                         sw_numblocks = cstr.cstr_nonconsts;
                         sw_blocks = nonconsts;
-                        sw_failaction = fail_opt
+                        sw_failaction = fail_opt;
+                        sw_names = sw_names
                       }
                     in
                     let hs, sw = share_actions_sw sw in
@@ -3090,6 +3093,9 @@ let arg_to_var arg cls =
    Output: a lambda term, a jump summary {..., exit number -> context, .. }
 *)
 
+let names_from_construct_pattern : (pattern -> switch_names option) ref =
+  ref (fun _ -> None)
+
 let rec compile_match repr partial ctx (m : pattern_matching) =
   match m with
   | { cases = []; args = [] } -> comp_exit ctx m
@@ -3150,7 +3156,8 @@ and do_compile_matching repr partial ctx pmh =
             *)
             assert false
       in
-      let pat = what_is_cases pm.cases in
+      let pat : Typedtree.pattern = what_is_cases pm.cases in
+
       match pat.pat_desc with
       | Tpat_any ->
           compile_no_test divide_var Context.rshift repr partial ctx pm
@@ -3169,10 +3176,11 @@ and do_compile_matching repr partial ctx pmh =
             (combine_constant pat.pat_loc arg cst partial)
             ctx pm
       | Tpat_construct (_, cstr, _) ->
+          let sw_names = !names_from_construct_pattern pat in
           compile_test
             (compile_match repr partial)
             partial divide_constructor
-            (combine_constructor pat.pat_loc arg pat cstr partial)
+            (combine_constructor sw_names pat.pat_loc arg pat cstr partial)
             ctx pm
       | Tpat_array _ ->
           let kind = Typeopt.array_pattern_kind pat in

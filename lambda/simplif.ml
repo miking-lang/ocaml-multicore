@@ -56,7 +56,8 @@ let rec eliminate_ref id = function
          sw_blocks =
             List.map (fun (n, e) -> (n, eliminate_ref id e)) sw.sw_blocks;
          sw_failaction =
-            Option.map (eliminate_ref id) sw.sw_failaction; },
+           Option.map (eliminate_ref id) sw.sw_failaction;
+         sw_names = None },
         loc)
   | Lstringswitch(e, sw, default, loc) ->
       Lstringswitch

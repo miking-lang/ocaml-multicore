@@ -22,7 +22,7 @@ open Lambda
 let print_tag_info = function
   | Tag_none -> ""
   | Tag_record -> ":record"
-  | Tag_con -> ":con"
+  | Tag_con s -> sprintf ":con'%s'" s
 
 let rec struct_const ppf = function
   | Const_base(Const_int n) -> fprintf ppf "%i" n

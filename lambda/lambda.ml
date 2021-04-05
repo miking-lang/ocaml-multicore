@@ -224,7 +224,7 @@ let equal_value_kind x y =
 type tag_info =
   | Tag_none
   | Tag_record
-  | Tag_con
+  | Tag_con of string
 
 type structured_constant =
     Const_base of constant
@@ -293,6 +293,9 @@ type function_attribute = {
   stub: bool;
 }
 
+(* Thanks ReScript: https://github.com/rescript-lang/rescript-compiler *)
+type switch_names = {consts: string array; blocks: string array}
+
 type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
@@ -337,7 +340,8 @@ and lambda_switch =
     sw_consts: (int * lambda) list;
     sw_numblocks: int;
     sw_blocks: (int * lambda) list;
-    sw_failaction : lambda option}
+    sw_failaction : lambda option;
+    sw_names: switch_names option }
 
 and lambda_event =
   { lev_loc: Location.t;
@@ -452,7 +456,8 @@ let make_key e =
     { sw with
       sw_consts = List.map (fun (i,e) -> i,tr_rec env e) sw.sw_consts ;
       sw_blocks = List.map (fun (i,e) -> i,tr_rec env e) sw.sw_blocks ;
-      sw_failaction = tr_opt env sw.sw_failaction ; }
+      sw_failaction = tr_opt env sw.sw_failaction ;
+      sw_names = None }
 
   and tr_opt env = function
     | None -> None
@@ -808,6 +813,7 @@ let shallow_map f = function
                  sw_numblocks = sw.sw_numblocks;
                  sw_blocks = List.map (fun (n, e) -> (n, f e)) sw.sw_blocks;
                  sw_failaction = Option.map f sw.sw_failaction;
+                 sw_names = None;
                },
                loc)
   | Lstringswitch (e, sw, default, loc) ->
