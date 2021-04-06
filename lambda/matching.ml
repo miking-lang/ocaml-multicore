@@ -2696,7 +2696,7 @@ let split_extension_cases tag_lambda_list =
 
 let combine_constructor sw_names loc arg ex_pat cstr partial ctx def
     (tag_lambda_list, total1, pats) =
-cd  match cstr.cstr_tag with
+  match cstr.cstr_tag with
   | Cstr_extension _ ->
       (* Special cases for extensions *)
       let fail, local_jumps = mk_failaction_neg partial ctx def in
