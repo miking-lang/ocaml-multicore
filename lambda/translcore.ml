@@ -332,8 +332,10 @@ and transl_exp0 e =
                 Lconst(Const_pointer(n, Ptr_unit))
             | "[]" ->
                 Lconst(Const_pointer(n, Ptr_nil))
-            | _ ->
-                Lconst(Const_pointer(n, Ptr_none))
+            | "true" | "false" ->
+                Lconst(Const_pointer(n, Ptr_bool))
+            | s ->
+                Lconst(Const_pointer(n, Ptr_con s))
             end
         | Cstr_unboxed ->
             (match ll with [v] -> v | _ -> assert false)
@@ -355,7 +357,8 @@ and transl_exp0 e =
   | Texp_variant(l, arg) ->
       let tag = Btype.hash_variant l in
       begin match arg with
-        None -> Lconst(Const_pointer(tag, Ptr_none))
+        None ->
+          Lconst(Const_pointer(tag, Ptr_none))
       | Some arg ->
           let lam = transl_exp arg in
           try

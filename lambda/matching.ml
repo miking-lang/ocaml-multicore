@@ -1626,7 +1626,7 @@ let make_constr_matching p def ctx = function
           | Cstr_constant _
           | Cstr_block _ ->
               make_field_args p.pat_loc Alias arg 0 (cstr.cstr_arity - 1) argl
-                ~field_info:(if cstr.cstr_name = "::" then Fcons else Fvariant)
+                ~field_info:(if cstr.cstr_name = "::" then Fcons else Fcon)
           | Cstr_unboxed -> (arg, Alias) :: argl
           | Cstr_extension _ ->
               make_field_args p.pat_loc Alias arg 1 cstr.cstr_arity argl
@@ -2758,7 +2758,12 @@ let combine_constructor sw_names loc arg ex_pat cstr partial ctx def
             | 1, 1, [ (0, act1) ], [ (0, act2) ] ->
                 (* Typically, match on lists, will avoid isint primitive in that
                    case *)
-                let info = if cstr.cstr_name = "[]" then Match_nil else Match_none in
+                (* print_endline cstr.cstr_name; *)
+                let info = begin
+                  match cstr.cstr_name with
+                  | "[]" -> Match_nil
+                  | s -> Match_con(s)
+                end in
                 Lifthenelse (arg, act2, act1, info)
             | n, 0, _, [] ->
                 (* The type defines constant constructors only *)

@@ -44,7 +44,7 @@ type field_info =
   | Fmodule of string
   | Frecord of string
   | Frecord_inline of string
-  | Fvariant
+  | Fcon
   | Ftuple
   | Fcons
 
@@ -233,8 +233,10 @@ type tag_info =
 
 type pointer_info =
   | Ptr_none
+  | Ptr_bool
   | Ptr_nil
   | Ptr_unit
+  | Ptr_con of string
 
 type structured_constant =
     Const_base of constant
@@ -309,6 +311,7 @@ type switch_names = {consts: string array; blocks: string array}
 type match_info =
     Match_none
   | Match_nil
+  | Match_con of string
 
 type lambda =
     Lvar of Ident.t

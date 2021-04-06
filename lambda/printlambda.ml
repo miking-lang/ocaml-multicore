@@ -27,8 +27,10 @@ let print_tag_info = function
 
 let print_pointer_info = function
   | Ptr_none -> ""
+  | Ptr_bool -> ":bool"
   | Ptr_nil -> ":nil"
   | Ptr_unit -> ":unit"
+  | Ptr_con(s) -> sprintf ":%s" s
 
 let rec struct_const ppf = function
   | Const_base(Const_int n) -> fprintf ppf "%i" n
@@ -177,7 +179,7 @@ let primitive ppf = function
         | Fmodule s -> sprintf ":module(%s) " s
         | Frecord s -> sprintf ":record(%s) " s
         | Frecord_inline s -> sprintf ":record_inline(%s) " s
-        | Fvariant -> ":variant"
+        | Fcon -> ":con"
         | Ftuple -> ":tuple "
         | Fcons -> ":cons"
       in
@@ -653,6 +655,7 @@ let rec lam ppf = function
       let print_match_info = function
         | Match_none -> ""
         | Match_nil -> ":[]"
+        | Match_con(s) -> sprintf ":%s" s
       in
       fprintf ppf "@[<2>(if@ %a%s@ %a@ %a)@]" lam lcond (print_match_info info)
         lam lif lam lelse
