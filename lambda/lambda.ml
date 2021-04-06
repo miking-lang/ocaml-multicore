@@ -44,7 +44,9 @@ type field_info =
   | Fmodule of string
   | Frecord of string
   | Frecord_inline of string
+  | Fvariant
   | Ftuple
+  | Fcons
 
 type primitive =
   | Pidentity
@@ -304,6 +306,10 @@ type function_attribute = {
 (* Thanks ReScript: https://github.com/rescript-lang/rescript-compiler *)
 type switch_names = {consts: string array; blocks: string array}
 
+type match_info =
+    Match_none
+  | Match_nil
+
 type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
@@ -318,7 +324,7 @@ type lambda =
   | Lstaticraise of int * lambda list
   | Lstaticcatch of lambda * (int * (Ident.t * value_kind) list) * lambda
   | Ltrywith of lambda * Ident.t * lambda
-  | Lifthenelse of lambda * lambda * lambda
+  | Lifthenelse of lambda * lambda * lambda * match_info
   | Lsequence of lambda * lambda
   | Lwhile of lambda * lambda
   | Lfor of Ident.t * lambda * lambda * direction_flag * lambda
@@ -442,8 +448,8 @@ let make_key e =
         Lstaticcatch (tr_rec env e1,xs,tr_rec env e2)
     | Ltrywith (e1,x,e2) ->
         Ltrywith (tr_rec env e1,x,tr_rec env e2)
-    | Lifthenelse (cond,ifso,ifnot) ->
-        Lifthenelse (tr_rec env cond,tr_rec env ifso,tr_rec env ifnot)
+    | Lifthenelse (cond,ifso,ifnot,info) ->
+        Lifthenelse (tr_rec env cond,tr_rec env ifso,tr_rec env ifnot,info)
     | Lsequence (e1,e2) ->
         Lsequence (tr_rec env e1,tr_rec env e2)
     | Lassign (x,e) ->
@@ -534,7 +540,7 @@ let shallow_iter ~tail ~non_tail:f = function
       tail e1; tail e2
   | Ltrywith(e1, _, e2) ->
       f e1; tail e2
-  | Lifthenelse(e1, e2, e3) ->
+  | Lifthenelse(e1, e2, e3, _) ->
       f e1; tail e2; tail e3
   | Lsequence(e1, e2) ->
       f e1; tail e2
@@ -605,7 +611,7 @@ let rec free_variables = function
            param
            (free_variables handler))
         (free_variables body)
-  | Lifthenelse(e1, e2, e3) ->
+  | Lifthenelse(e1, e2, e3, _) ->
       Ident.Set.union
         (Ident.Set.union (free_variables e1) (free_variables e2))
         (free_variables e3)
@@ -643,14 +649,14 @@ let next_raise_count () =
 let staticfail = Lstaticraise (0,[])
 
 let rec is_guarded = function
-  | Lifthenelse(_cond, _body, Lstaticraise (0,[])) -> true
+  | Lifthenelse(_cond, _body, Lstaticraise (0,[]), _) -> true
   | Llet(_str, _k, _id, _lam, body) -> is_guarded body
   | Levent(lam, _ev) -> is_guarded lam
   | _ -> false
 
 let rec patch_guarded patch = function
-  | Lifthenelse (cond, body, Lstaticraise (0,[])) ->
-      Lifthenelse (cond, body, patch)
+  | Lifthenelse (cond, body, Lstaticraise (0,[]), info) ->
+      Lifthenelse (cond, body, patch, info)
   | Llet(str, k, id, lam, body) ->
       Llet (str, k, id, lam, patch_guarded patch body)
   | Levent(lam, ev) ->
@@ -754,7 +760,7 @@ let subst update_env s lam =
                     subst (remove_list params s) handler)
     | Ltrywith(body, exn, handler) ->
         Ltrywith(subst s body, exn, subst (Ident.Map.remove exn s) handler)
-    | Lifthenelse(e1, e2, e3) -> Lifthenelse(subst s e1, subst s e2, subst s e3)
+    | Lifthenelse(e1, e2, e3, info) -> Lifthenelse(subst s e1, subst s e2, subst s e3, info)
     | Lsequence(e1, e2) -> Lsequence(subst s e1, subst s e2)
     | Lwhile(e1, e2) -> Lwhile(subst s e1, subst s e2)
     | Lfor(v, lo, hi, dir, body) ->
@@ -836,8 +842,8 @@ let shallow_map f = function
       Lstaticcatch (f body, id, f handler)
   | Ltrywith (e1, v, e2) ->
       Ltrywith (f e1, v, f e2)
-  | Lifthenelse (e1, e2, e3) ->
-      Lifthenelse (f e1, f e2, f e3)
+  | Lifthenelse (e1, e2, e3, info) ->
+      Lifthenelse (f e1, f e2, f e3, info)
   | Lsequence (e1, e2) ->
       Lsequence (f e1, f e2)
   | Lwhile (e1, e2) ->

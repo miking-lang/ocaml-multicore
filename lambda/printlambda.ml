@@ -177,7 +177,9 @@ let primitive ppf = function
         | Fmodule s -> sprintf ":module(%s) " s
         | Frecord s -> sprintf ":record(%s) " s
         | Frecord_inline s -> sprintf ":record_inline(%s) " s
+        | Fvariant -> ":variant"
         | Ftuple -> ":tuple "
+        | Fcons -> ":cons"
       in
       let instr =
         match ptr, mut with
@@ -647,8 +649,13 @@ let rec lam ppf = function
   | Ltrywith(lbody, param, lhandler) ->
       fprintf ppf "@[<2>(try@ %a@;<1 -1>with %a@ %a)@]"
         lam lbody Ident.print param lam lhandler
-  | Lifthenelse(lcond, lif, lelse) ->
-      fprintf ppf "@[<2>(if@ %a@ %a@ %a)@]" lam lcond lam lif lam lelse
+  | Lifthenelse(lcond, lif, lelse, info) ->
+      let print_match_info = function
+        | Match_none -> ""
+        | Match_nil -> ":[]"
+      in
+      fprintf ppf "@[<2>(if@ %a%s@ %a@ %a)@]" lam lcond (print_match_info info)
+        lam lif lam lelse
   | Lsequence(l1, l2) ->
       fprintf ppf "@[<2>(seq@ %a@ %a)@]" lam l1 sequence l2
   | Lwhile(lcond, lbody) ->

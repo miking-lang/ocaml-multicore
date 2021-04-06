@@ -50,7 +50,9 @@ type field_info =
   | Fmodule of string
   | Frecord of string
   | Frecord_inline of string
+  | Fvariant
   | Ftuple
+  | Fcons
 
 type primitive =
   | Pidentity
@@ -287,6 +289,10 @@ type function_attribute = {
 (* Thanks ReScript: https://github.com/rescript-lang/rescript-compiler *)
 type switch_names = {consts: string array; blocks: string array}
 
+type match_info =
+    Match_none
+  | Match_nil
+
 type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
@@ -305,7 +311,7 @@ type lambda =
   | Ltrywith of lambda * Ident.t * lambda
 (* Lifthenelse (e, t, f) evaluates t if e evaluates to 0, and
    evaluates f if e evaluates to any other value *)
-  | Lifthenelse of lambda * lambda * lambda
+  | Lifthenelse of lambda * lambda * lambda * match_info
   | Lsequence of lambda * lambda
   | Lwhile of lambda * lambda
   | Lfor of Ident.t * lambda * lambda * direction_flag * lambda
