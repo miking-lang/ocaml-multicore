@@ -179,7 +179,7 @@ let primitive ppf = function
         | Fmodule s -> sprintf ":module(%s) " s
         | Frecord s -> sprintf ":record(%s) " s
         | Frecord_inline s -> sprintf ":record_inline(%s) " s
-        | Fcon -> ":con"
+        | Fcon s -> sprintf ":con'%s'" s
         | Ftuple -> ":tuple "
         | Fcons -> ":cons"
       in

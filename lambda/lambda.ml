@@ -44,7 +44,7 @@ type field_info =
   | Fmodule of string
   | Frecord of string
   | Frecord_inline of string
-  | Fcon
+  | Fcon of string
   | Ftuple
   | Fcons
 

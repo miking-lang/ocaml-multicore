@@ -1626,7 +1626,8 @@ let make_constr_matching p def ctx = function
           | Cstr_constant _
           | Cstr_block _ ->
               make_field_args p.pat_loc Alias arg 0 (cstr.cstr_arity - 1) argl
-                ~field_info:(if cstr.cstr_name = "::" then Fcons else Fcon)
+                ~field_info:(if cstr.cstr_name = "::" then Fcons
+                             else Fcon cstr.cstr_name)
           | Cstr_unboxed -> (arg, Alias) :: argl
           | Cstr_extension _ ->
               make_field_args p.pat_loc Alias arg 1 cstr.cstr_arity argl
