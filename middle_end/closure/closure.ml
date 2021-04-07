@@ -859,7 +859,7 @@ let rec close ({ backend; fenv; cenv } as env) lam =
       let rec transl = function
         | Const_base(Const_int n) -> Uconst_int n
         | Const_base(Const_char c) -> Uconst_int (Char.code c)
-        | Const_pointer n -> Uconst_ptr n
+        | Const_pointer(n, _) -> Uconst_ptr n
         | Const_block (tag, fields, _) ->
             str (Uconst_block (tag, List.map transl fields))
         | Const_float_array sl ->
@@ -1137,7 +1137,7 @@ let rec close ({ backend; fenv; cenv } as env) lam =
       let (ubody, _) = close env body in
       let (uhandler, _) = close env handler in
       (Utrywith(ubody, VP.create id, uhandler), Value_unknown)
-  | Lifthenelse(arg, ifso, ifnot) ->
+  | Lifthenelse(arg, ifso, ifnot, _) ->
       begin match close env arg with
         (uarg, Value_const (Uconst_ptr n)) ->
           sequence_constant_expr uarg

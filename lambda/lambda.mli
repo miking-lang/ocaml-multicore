@@ -47,8 +47,12 @@ type is_safe =
 
 type field_info =
   | Fnone
-  | Fmodule_access of string
-  | Frecord_access of string
+  | Fmodule of string
+  | Frecord of string
+  | Frecord_inline of string
+  | Fcon of string
+  | Ftuple
+  | Fcons
 
 type primitive =
   | Pidentity
@@ -216,10 +220,19 @@ val equal_boxed_integer : boxed_integer -> boxed_integer -> bool
 type tag_info =
   | Tag_none
   | Tag_record
+  | Tag_con of string
+  | Tag_tuple
+
+type pointer_info =
+  | Ptr_none
+  | Ptr_bool
+  | Ptr_nil
+  | Ptr_unit
+  | Ptr_con of string
 
 type structured_constant =
     Const_base of constant
-  | Const_pointer of int
+  | Const_pointer of int * pointer_info
   | Const_block of int * structured_constant list * tag_info
   | Const_float_array of string list
   | Const_immstring of string
@@ -275,6 +288,14 @@ type function_attribute = {
   stub: bool;
 }
 
+(* Thanks ReScript: https://github.com/rescript-lang/rescript-compiler *)
+type switch_names = {consts: string array; blocks: string array}
+
+type match_info =
+    Match_none
+  | Match_nil
+  | Match_con of string
+
 type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
@@ -293,7 +314,7 @@ type lambda =
   | Ltrywith of lambda * Ident.t * lambda
 (* Lifthenelse (e, t, f) evaluates t if e evaluates to 0, and
    evaluates f if e evaluates to any other value *)
-  | Lifthenelse of lambda * lambda * lambda
+  | Lifthenelse of lambda * lambda * lambda * match_info
   | Lsequence of lambda * lambda
   | Lwhile of lambda * lambda
   | Lfor of Ident.t * lambda * lambda * direction_flag * lambda
@@ -323,7 +344,8 @@ and lambda_switch =
     sw_consts: (int * lambda) list;     (* Integer cases *)
     sw_numblocks: int;                  (* Number of tag block cases *)
     sw_blocks: (int * lambda) list;     (* Tag block cases *)
-    sw_failaction : lambda option}      (* Action to take if failure *)
+    sw_failaction : lambda option;      (* Action to take if failure *)
+    sw_names: switch_names option }     (* Names of targets *)
 and lambda_event =
   { lev_loc: Location.t;
     lev_kind: lambda_event_kind;
