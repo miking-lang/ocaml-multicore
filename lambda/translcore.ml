@@ -180,7 +180,7 @@ let assert_failed exp =
               [Const_base(Const_string (fname, None));
                Const_base(Const_int line);
                Const_base(Const_int char)],
-                              Tag_none))], exp.exp_loc))], exp.exp_loc)
+                              Tag_tuple))], exp.exp_loc))], exp.exp_loc)
 ;;
 
 let rec cut n l =
@@ -294,7 +294,7 @@ and transl_exp0 e =
   | Texp_tuple el ->
       let ll, shape = transl_list_with_shape el in
       begin try
-        Lconst(Const_block(0, List.map extract_constant ll, Tag_none))
+        Lconst(Const_block(0, List.map extract_constant ll, Tag_tuple))
       with Not_constant ->
         Lprim(Pmakeblock(0, Immutable, Some shape), ll, e.exp_loc)
       end
@@ -304,29 +304,39 @@ and transl_exp0 e =
         | [x] -> x
         | _ -> assert false
       end else begin match cstr.cstr_tag with
-        Cstr_constant n ->
-          Lconst(Const_pointer n)
-      | Cstr_unboxed ->
-          (match ll with [v] -> v | _ -> assert false)
-      | Cstr_block n ->
-          begin try
-            Lconst(Const_block(n, List.map extract_constant ll, Tag_none))
-          with Not_constant ->
-            Lprim(Pmakeblock(n, Immutable, Some shape), ll, e.exp_loc)
-          end
-      | Cstr_extension(path, is_const) ->
-          let lam = transl_extension_path e.exp_loc e.exp_env path in
-          if is_const then lam
-          else
-            Lprim(Pmakeblock(0, Immutable, Some (Pgenval :: shape)),
-                  lam :: ll, e.exp_loc)
+          Cstr_constant n ->
+            begin match cstr.cstr_name with
+            | "()" ->
+                Lconst(Const_pointer(n, Ptr_unit))
+            | "[]" ->
+                Lconst(Const_pointer(n, Ptr_nil))
+            | "true" | "false" ->
+                Lconst(Const_pointer(n, Ptr_bool))
+            | s ->
+                Lconst(Const_pointer(n, Ptr_con s))
+            end
+        | Cstr_unboxed ->
+            (match ll with [v] -> v | _ -> assert false)
+        | Cstr_block n ->
+            begin try
+              Lconst(Const_block(n, List.map extract_constant ll, Tag_con cstr.cstr_name))
+            with Not_constant ->
+              Lprim(Pmakeblock(n, Immutable, Some shape), ll, e.exp_loc)
+            end
+        | Cstr_extension(path, is_const) ->
+            let lam = transl_extension_path e.exp_loc e.exp_env path in
+            if is_const then lam
+            else
+              Lprim(Pmakeblock(0, Immutable, Some (Pgenval :: shape)),
+                    lam :: ll, e.exp_loc)
       end
   | Texp_extension_constructor (_, path) ->
       transl_extension_path e.exp_loc e.exp_env path
   | Texp_variant(l, arg) ->
       let tag = Btype.hash_variant l in
       begin match arg with
-        None -> Lconst(Const_pointer tag)
+        None ->
+          Lconst(Const_pointer(tag, Ptr_none))
       | Some arg ->
           let lam = transl_exp arg in
           try
@@ -344,7 +354,7 @@ and transl_exp0 e =
       let targ = transl_exp arg in
       begin match lbl.lbl_repres with
           Record_regular | Record_inlined _ ->
-          Lprim (Pfield (lbl.lbl_pos, maybe_pointer e, lbl.lbl_mut, Frecord_access lbl.lbl_name),
+          Lprim (Pfield (lbl.lbl_pos, maybe_pointer e, lbl.lbl_mut, Frecord lbl.lbl_name),
                   [targ], e.exp_loc)
         | Record_unboxed _ -> targ
         | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [targ], e.exp_loc)
@@ -412,11 +422,12 @@ and transl_exp0 e =
   | Texp_ifthenelse(cond, ifso, Some ifnot) ->
       Lifthenelse(transl_exp cond,
                   event_before ifso (transl_exp ifso),
-                  event_before ifnot (transl_exp ifnot))
+                  event_before ifnot (transl_exp ifnot),
+                  Match_none)
   | Texp_ifthenelse(cond, ifso, None) ->
       Lifthenelse(transl_exp cond,
                   event_before ifso (transl_exp ifso),
-                  lambda_unit)
+                  lambda_unit, Match_none)
   | Texp_sequence(expr1, expr2) ->
       Lsequence(transl_exp expr1, event_before expr2 (transl_exp expr2))
   | Texp_while(cond, body) ->
@@ -496,7 +507,8 @@ and transl_exp0 e =
   | Texp_assert (cond) ->
       if !Clflags.noassert
       then lambda_unit
-      else Lifthenelse (transl_exp cond, lambda_unit, assert_failed e)
+      else Lifthenelse (transl_exp cond, lambda_unit, assert_failed e,
+                        Match_none)
   | Texp_lazy e ->
       (* when e needs no computation (constants, identifiers, ...), we
          optimize the translation just as Lazy.lazy_from_val would
@@ -593,7 +605,8 @@ and transl_guard guard rhs =
   match guard with
   | None -> expr
   | Some cond ->
-      event_before cond (Lifthenelse(transl_exp cond, expr, staticfail))
+      event_before cond (Lifthenelse(transl_exp cond, expr, staticfail,
+                                     Match_none))
 
 and transl_case {c_lhs; c_guard; c_rhs} =
   (c_lhs, transl_guard c_guard c_rhs)
@@ -822,7 +835,7 @@ and transl_record loc env fields repres opt_init_expr =
                let access =
                  match repres with
                    Record_regular | Record_inlined _ ->
-                     Pfield (i, maybe_pointer_type env typ, mut, Frecord_access lbl.lbl_name)
+                     Pfield (i, maybe_pointer_type env typ, mut, Frecord lbl.lbl_name)
                  | Record_unboxed _ -> assert false
                  | Record_extension _ ->
                      Pfield (i + 1, maybe_pointer_type env typ, mut, Fnone)
