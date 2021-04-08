@@ -54,6 +54,19 @@ type field_info =
   | Ftuple
   | Fcons
 
+type tag_info =
+  | Tag_none
+  | Tag_record
+  | Tag_con of string
+  | Tag_tuple
+
+type pointer_info =
+  | Ptr_none
+  | Ptr_bool
+  | Ptr_nil
+  | Ptr_unit
+  | Ptr_con of string
+
 type primitive =
   | Pidentity
   | Pbytes_to_string
@@ -65,7 +78,7 @@ type primitive =
   | Pgetglobal of Ident.t
   | Psetglobal of Ident.t
   (* Operations on heap blocks *)
-  | Pmakeblock of int * mutable_flag * block_shape
+  | Pmakeblock of int * mutable_flag * block_shape * tag_info
   | Pfield of int * immediate_or_pointer * mutable_flag * field_info
   | Pfield_computed
   | Psetfield of int * immediate_or_pointer * initialization_or_assignment
@@ -216,19 +229,6 @@ val equal_primitive : primitive -> primitive -> bool
 val equal_value_kind : value_kind -> value_kind -> bool
 
 val equal_boxed_integer : boxed_integer -> boxed_integer -> bool
-
-type tag_info =
-  | Tag_none
-  | Tag_record
-  | Tag_con of string
-  | Tag_tuple
-
-type pointer_info =
-  | Ptr_none
-  | Ptr_bool
-  | Ptr_nil
-  | Ptr_unit
-  | Ptr_con of string
 
 type structured_constant =
     Const_base of constant
