@@ -169,10 +169,12 @@ let primitive ppf = function
   | Pdirapply -> fprintf ppf "dirapply"
   | Pgetglobal id -> fprintf ppf "global %a" Ident.print id
   | Psetglobal id -> fprintf ppf "setglobal %a" Ident.print id
-  | Pmakeblock(tag, Immutable, shape) ->
-      fprintf ppf "makeblock %i%a" tag block_shape shape
-  | Pmakeblock(tag, Mutable, shape) ->
-      fprintf ppf "makemutable %i%a" tag block_shape shape
+  | Pmakeblock(tag, Immutable, shape, info) ->
+      fprintf ppf "makeblock %i%s%a" tag (print_tag_info info)
+        block_shape shape
+  | Pmakeblock(tag, Mutable, shape, info) ->
+      fprintf ppf "makemutable %i%s%a" tag (print_tag_info info)
+        block_shape shape
   | Pfield(n, ptr, mut, finfo) ->
       let print_field = function
         | Fnone -> " "

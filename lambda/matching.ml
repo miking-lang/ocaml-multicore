@@ -3361,7 +3361,7 @@ let partial_function loc () =
   Lprim
     ( Praise Raise_regular,
       [ Lprim
-          ( Pmakeblock (0, Immutable, None),
+          ( Pmakeblock (0, Immutable, None, Tag_none),
             [ slot;
               Lconst
                 (Const_block
@@ -3609,7 +3609,7 @@ let do_for_multiple_match loc paraml pat_act_list partial =
     ( raise_num,
       { cases = List.map (fun (pat, act) -> ([ pat ], act)) pat_act_list;
         args =
-          [ (Lprim (Pmakeblock (0, Immutable, None), paraml, loc), Strict) ];
+          [ (Lprim (Pmakeblock (0, Immutable, None, Tag_none), paraml, loc), Strict) ];
         default
       } )
   in

@@ -123,8 +123,8 @@ let primitives_table =
     "%field0", Primitive (Pfield(0, Pointer, Mutable, Fnone), 1);
     "%field1", Primitive (Pfield(1, Pointer, Mutable, Fnone), 1);
     "%setfield0", Primitive ((Psetfield(0, Pointer, Assignment)), 2);
-    "%makeblock", Primitive ((Pmakeblock(0, Immutable, None)), 1);
-    "%makemutable", Primitive ((Pmakeblock(0, Mutable, None)), 1);
+    "%makeblock", Primitive ((Pmakeblock(0, Immutable, None, Tag_none)), 1);
+    "%makemutable", Primitive ((Pmakeblock(0, Mutable, None, Tag_none)), 1);
     "%raise", Raise Raise_regular;
     "%reraise", Raise Raise_reraise;
     "%raise_notrace", Raise Raise_notrace;
@@ -472,10 +472,11 @@ let specialize_primitive env ty ~has_constant_constructor prim =
       | Pbigarray_unknown, Pbigarray_unknown_layout -> None
       | _, _ -> Some (Primitive (Pbigarrayset(unsafe, n, k, l), arity))
     end
-  | Primitive (Pmakeblock(tag, mut, None), arity), fields -> begin
+  | Primitive (Pmakeblock(tag, mut, None, tag_info), arity), fields -> begin
       let shape = List.map (Typeopt.value_kind env) fields in
       let useful = List.exists (fun knd -> knd <> Pgenval) shape in
-      if useful then Some (Primitive (Pmakeblock(tag, mut, Some shape), arity))
+      if useful then Some (Primitive (Pmakeblock(tag, mut, Some shape, tag_info),
+                                      arity))
       else None
     end
   | Primitive (Patomic_load { immediate_or_pointer = Pointer }, arity), _ -> begin
@@ -712,7 +713,7 @@ let lambda_of_prim prim_name prim loc args arg_exps =
       lambda_of_loc kind loc
   | Loc kind, [arg] ->
       let lam = lambda_of_loc kind loc in
-      Lprim(Pmakeblock(0, Immutable, None), [lam; arg], loc)
+      Lprim(Pmakeblock(0, Immutable, None, Tag_none), [lam; arg], loc)
   | Send, [obj; meth] ->
       Lsend(Public, meth, obj, [], loc)
   | Send_self, [obj; meth] ->
