@@ -48,6 +48,19 @@ type field_info =
   | Ftuple
   | Fcons
 
+type tag_info =
+  | Tag_none
+  | Tag_record
+  | Tag_con of string
+  | Tag_tuple
+
+type pointer_info =
+  | Ptr_none
+  | Ptr_bool
+  | Ptr_nil
+  | Ptr_unit
+  | Ptr_con of string
+
 type primitive =
   | Pidentity
   | Pbytes_to_string
@@ -59,7 +72,7 @@ type primitive =
   | Pgetglobal of Ident.t
   | Psetglobal of Ident.t
   (* Operations on heap blocks *)
-  | Pmakeblock of int * mutable_flag * block_shape
+  | Pmakeblock of int * mutable_flag * block_shape * tag_info
   | Pfield of int * immediate_or_pointer * mutable_flag * field_info
   | Pfield_computed
   | Psetfield of int * immediate_or_pointer * initialization_or_assignment
@@ -224,19 +237,6 @@ let equal_value_kind x y =
   | Pboxedintval bi1, Pboxedintval bi2 -> equal_boxed_integer bi1 bi2
   | Pintval, Pintval -> true
   | (Pgenval | Pfloatval | Pboxedintval _ | Pintval), _ -> false
-
-type tag_info =
-  | Tag_none
-  | Tag_record
-  | Tag_con of string
-  | Tag_tuple
-
-type pointer_info =
-  | Ptr_none
-  | Ptr_bool
-  | Ptr_nil
-  | Ptr_unit
-  | Ptr_con of string
 
 type structured_constant =
     Const_base of constant
