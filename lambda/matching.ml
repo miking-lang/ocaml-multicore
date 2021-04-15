@@ -3004,14 +3004,14 @@ let rec approx_present v = function
 
 let rec lower_bind v arg lam =
   match lam with
-  | Lifthenelse (cond, ifso, ifnot, _) -> (
+  | Lifthenelse (cond, ifso, ifnot, info) -> (
       let pcond = approx_present v cond
       and pso = approx_present v ifso
       and pnot = approx_present v ifnot in
       match (pcond, pso, pnot) with
       | false, false, false -> lam
-      | false, true, false -> Lifthenelse (cond, lower_bind v arg ifso, ifnot, Match_none)
-      | false, false, true -> Lifthenelse (cond, ifso, lower_bind v arg ifnot, Match_none)
+      | false, true, false -> Lifthenelse (cond, lower_bind v arg ifso, ifnot, info)
+      | false, false, true -> Lifthenelse (cond, ifso, lower_bind v arg ifnot, info)
       | _, _, _ -> bind Alias v arg lam
     )
   | Lswitch (ls, ({ sw_consts = [ (i, act) ]; sw_blocks = [] } as sw), loc)
