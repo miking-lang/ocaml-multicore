@@ -1988,7 +1988,7 @@ let make_record_matching env loc all_labels def = function
             match lbl.lbl_repres with
             | Record_regular
             | Record_inlined _ ->
-                Lprim (Pfield (lbl.lbl_pos, ptr, lbl.lbl_mut, Fnone), [ arg ], loc)
+                Lprim (Pfield (lbl.lbl_pos, ptr, lbl.lbl_mut, Frecord lbl.lbl_name), [ arg ], loc)
             | Record_unboxed _ -> arg
             | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [ arg ], loc)
             | Record_extension _ ->
