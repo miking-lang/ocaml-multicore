@@ -1,11 +1,11 @@
 (* In order to use the development compiler with opam 2.0, first create a new
    switch
 
-      opam switch create 4.10.0+multicore --empty
+      opam switch create 4.10.0+multicore+flambda --empty
 
    Initial build:
 
-      opam pin add -k path --inplace-build ocaml-variants.4.10.0+multicore .
+      opam pin add -k path --inplace-build ocaml-variants.4.10.0+multicore+flambda .
 
    This installs the compiler for the new opam switch. Subsequent builds can be
    done locally with:
