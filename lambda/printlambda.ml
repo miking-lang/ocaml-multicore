@@ -26,7 +26,7 @@ let print_tag_info = function
   | Tag_tuple -> ":tuple"
 
 let print_pointer_info = function
-  | Ptr_none -> ""
+  | Ptr_none -> ":(noinfo)"
   | Ptr_bool -> ":bool"
   | Ptr_nil -> ":nil"
   | Ptr_unit -> ":unit"
