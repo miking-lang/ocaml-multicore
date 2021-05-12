@@ -340,9 +340,9 @@ let comp_primitive p sz args =
     Pgetglobal id -> Kgetglobal id
   | Psetglobal id -> Ksetglobal id
   | Pintcomp cmp -> Kintcomp cmp
-  | Pmakeblock(tag, _mut, _) -> Kmakeblock(List.length args, tag)
-  | Pfield(n, _ptr, Immutable) -> Kgetfield n
-  | Pfield(n, _ptr, Mutable) -> Kgetmutablefield n
+  | Pmakeblock(tag, _mut, _, _) -> Kmakeblock(List.length args, tag)
+  | Pfield(n, _ptr, Immutable, _) -> Kgetfield n
+  | Pfield(n, _ptr, Mutable, _) -> Kgetmutablefield n
   | Pfield_computed -> Kgetvectitem
   | Psetfield(n, _ptr, _init) -> Ksetfield n
   | Psetfield_computed(_ptr, _init) -> Ksetvectitem
@@ -813,7 +813,7 @@ let rec comp_expr env exp sz cont =
       let l = comp_expr env body (sz+4) body_cont in
       try_blocks := List.tl !try_blocks;
       Kpushtrap lbl_handler :: l
-  | Lifthenelse(cond, ifso, ifnot) ->
+  | Lifthenelse(cond, ifso, ifnot, _) ->
       comp_binary_test env cond ifso ifnot sz cont
   | Lsequence(exp1, exp2) ->
       comp_expr env exp1 sz (comp_expr env exp2 sz cont)

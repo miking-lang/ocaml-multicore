@@ -39,6 +39,28 @@ type is_safe =
   | Safe
   | Unsafe
 
+type field_info =
+  | Fnone
+  | Fmodule of string
+  | Frecord of string
+  | Frecord_inline of string
+  | Fcon of string
+  | Ftuple
+  | Fcons
+
+type tag_info =
+  | Tag_none
+  | Tag_record
+  | Tag_con of string
+  | Tag_tuple
+
+type pointer_info =
+  | Ptr_none
+  | Ptr_bool
+  | Ptr_nil
+  | Ptr_unit
+  | Ptr_con of string
+
 type primitive =
   | Pidentity
   | Pbytes_to_string
@@ -50,8 +72,8 @@ type primitive =
   | Pgetglobal of Ident.t
   | Psetglobal of Ident.t
   (* Operations on heap blocks *)
-  | Pmakeblock of int * mutable_flag * block_shape
-  | Pfield of int * immediate_or_pointer * mutable_flag
+  | Pmakeblock of int * mutable_flag * block_shape * tag_info
+  | Pfield of int * immediate_or_pointer * mutable_flag * field_info
   | Pfield_computed
   | Psetfield of int * immediate_or_pointer * initialization_or_assignment
   | Psetfield_computed of immediate_or_pointer * initialization_or_assignment
@@ -216,11 +238,10 @@ let equal_value_kind x y =
   | Pintval, Pintval -> true
   | (Pgenval | Pfloatval | Pboxedintval _ | Pintval), _ -> false
 
-
 type structured_constant =
     Const_base of constant
-  | Const_pointer of int
-  | Const_block of int * structured_constant list
+  | Const_pointer of int * pointer_info
+  | Const_block of int * structured_constant list * tag_info
   | Const_float_array of string list
   | Const_immstring of string
 
@@ -284,6 +305,14 @@ type function_attribute = {
   stub: bool;
 }
 
+(* Thanks ReScript: https://github.com/rescript-lang/rescript-compiler *)
+type switch_names = {consts: string array; blocks: string array}
+
+type match_info =
+    Match_none
+  | Match_nil
+  | Match_con of string
+
 type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
@@ -298,7 +327,7 @@ type lambda =
   | Lstaticraise of int * lambda list
   | Lstaticcatch of lambda * (int * (Ident.t * value_kind) list) * lambda
   | Ltrywith of lambda * Ident.t * lambda
-  | Lifthenelse of lambda * lambda * lambda
+  | Lifthenelse of lambda * lambda * lambda * match_info
   | Lsequence of lambda * lambda
   | Lwhile of lambda * lambda
   | Lfor of Ident.t * lambda * lambda * direction_flag * lambda
@@ -328,7 +357,8 @@ and lambda_switch =
     sw_consts: (int * lambda) list;
     sw_numblocks: int;
     sw_blocks: (int * lambda) list;
-    sw_failaction : lambda option}
+    sw_failaction : lambda option;
+    sw_names: switch_names option }
 
 and lambda_event =
   { lev_loc: Location.t;
@@ -349,7 +379,7 @@ type program =
     required_globals : Ident.Set.t;
     code : lambda }
 
-let const_unit = Const_pointer 0
+let const_unit = Const_pointer (0, Ptr_unit)
 
 let lambda_unit = Lconst const_unit
 
@@ -421,8 +451,8 @@ let make_key e =
         Lstaticcatch (tr_rec env e1,xs,tr_rec env e2)
     | Ltrywith (e1,x,e2) ->
         Ltrywith (tr_rec env e1,x,tr_rec env e2)
-    | Lifthenelse (cond,ifso,ifnot) ->
-        Lifthenelse (tr_rec env cond,tr_rec env ifso,tr_rec env ifnot)
+    | Lifthenelse (cond,ifso,ifnot,info) ->
+        Lifthenelse (tr_rec env cond,tr_rec env ifso,tr_rec env ifnot,info)
     | Lsequence (e1,e2) ->
         Lsequence (tr_rec env e1,tr_rec env e2)
     | Lassign (x,e) ->
@@ -443,7 +473,8 @@ let make_key e =
     { sw with
       sw_consts = List.map (fun (i,e) -> i,tr_rec env e) sw.sw_consts ;
       sw_blocks = List.map (fun (i,e) -> i,tr_rec env e) sw.sw_blocks ;
-      sw_failaction = tr_opt env sw.sw_failaction ; }
+      sw_failaction = tr_opt env sw.sw_failaction ;
+      sw_names = None }
 
   and tr_opt env = function
     | None -> None
@@ -512,7 +543,7 @@ let shallow_iter ~tail ~non_tail:f = function
       tail e1; tail e2
   | Ltrywith(e1, _, e2) ->
       f e1; tail e2
-  | Lifthenelse(e1, e2, e3) ->
+  | Lifthenelse(e1, e2, e3, _) ->
       f e1; tail e2; tail e3
   | Lsequence(e1, e2) ->
       f e1; tail e2
@@ -583,7 +614,7 @@ let rec free_variables = function
            param
            (free_variables handler))
         (free_variables body)
-  | Lifthenelse(e1, e2, e3) ->
+  | Lifthenelse(e1, e2, e3, _) ->
       Ident.Set.union
         (Ident.Set.union (free_variables e1) (free_variables e2))
         (free_variables e3)
@@ -621,14 +652,14 @@ let next_raise_count () =
 let staticfail = Lstaticraise (0,[])
 
 let rec is_guarded = function
-  | Lifthenelse(_cond, _body, Lstaticraise (0,[])) -> true
+  | Lifthenelse(_cond, _body, Lstaticraise (0,[]), _) -> true
   | Llet(_str, _k, _id, _lam, body) -> is_guarded body
   | Levent(lam, _ev) -> is_guarded lam
   | _ -> false
 
 let rec patch_guarded patch = function
-  | Lifthenelse (cond, body, Lstaticraise (0,[])) ->
-      Lifthenelse (cond, body, patch)
+  | Lifthenelse (cond, body, Lstaticraise (0,[]), info) ->
+      Lifthenelse (cond, body, patch, info)
   | Llet(str, k, id, lam, body) ->
       Llet (str, k, id, lam, patch_guarded patch body)
   | Levent(lam, ev) ->
@@ -637,20 +668,22 @@ let rec patch_guarded patch = function
 
 (* Translate an access path *)
 
-let rec transl_address loc = function
+let rec transl_address loc path = function
   | Env.Aident id ->
       if Ident.global id
       then Lprim(Pgetglobal id, [], loc)
       else Lvar id
   | Env.Adot(addr, pos) ->
-      Lprim(Pfield(pos, Pointer, Immutable),
-                   [transl_address loc addr], loc)
+      Lprim(Pfield(pos, Pointer,
+                   Immutable, Fmodule (Path.name path)),
+            [transl_address loc path addr], loc)
 
 let transl_path find loc env path =
   match find path env with
   | exception Not_found ->
       fatal_error ("Cannot find address for: " ^ (Path.name path))
-  | addr -> transl_address loc addr
+  | addr ->
+      transl_address loc path addr
 
 (* Translation of identifiers *)
 
@@ -730,7 +763,7 @@ let subst update_env s lam =
                     subst (remove_list params s) handler)
     | Ltrywith(body, exn, handler) ->
         Ltrywith(subst s body, exn, subst (Ident.Map.remove exn s) handler)
-    | Lifthenelse(e1, e2, e3) -> Lifthenelse(subst s e1, subst s e2, subst s e3)
+    | Lifthenelse(e1, e2, e3, info) -> Lifthenelse(subst s e1, subst s e2, subst s e3, info)
     | Lsequence(e1, e2) -> Lsequence(subst s e1, subst s e2)
     | Lwhile(e1, e2) -> Lwhile(subst s e1, subst s e2)
     | Lfor(v, lo, hi, dir, body) ->
@@ -797,6 +830,7 @@ let shallow_map f = function
                  sw_numblocks = sw.sw_numblocks;
                  sw_blocks = List.map (fun (n, e) -> (n, f e)) sw.sw_blocks;
                  sw_failaction = Option.map f sw.sw_failaction;
+                 sw_names = None;
                },
                loc)
   | Lstringswitch (e, sw, default, loc) ->
@@ -811,8 +845,8 @@ let shallow_map f = function
       Lstaticcatch (f body, id, f handler)
   | Ltrywith (e1, v, e2) ->
       Ltrywith (f e1, v, f e2)
-  | Lifthenelse (e1, e2, e3) ->
-      Lifthenelse (f e1, f e2, f e3)
+  | Lifthenelse (e1, e2, e3, info) ->
+      Lifthenelse (f e1, f e2, f e3, info)
   | Lsequence (e1, e2) ->
       Lsequence (f e1, f e2)
   | Lwhile (e1, e2) ->

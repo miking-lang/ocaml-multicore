@@ -1,11 +1,11 @@
 (* In order to use the development compiler with opam 2.0, first create a new
    switch
 
-      opam switch create 4.10.0+multicore --empty
+      opam switch create 4.10.0+multicore+flambda --empty
 
    Initial build:
 
-      opam pin add -k path --inplace-build ocaml-variants.4.10.0+multicore .
+      opam pin add -k path --inplace-build ocaml-variants.4.10.0+multicore+flambda .
 
    This installs the compiler for the new opam switch. Subsequent builds can be
    done locally with:
@@ -19,8 +19,8 @@
 *)
 
 opam-version: "2.0"
-version: "4.10.0+multicore"
-synopsis: "OCaml multicore 4.10.0"
+version: "4.10.0+multicore+flambda"
+synopsis: "OCaml multicore 4.10.0 with flambda enabled"
 depends: [
   "ocaml" {= "4.10.0" & post}
   "base-unix" {post}
@@ -31,11 +31,11 @@ conflict-class: "ocaml-core-compiler"
 flags: compiler
 setenv: CAML_LD_LIBRARY_PATH = "%{lib}%/stublibs"
 build: [
-  ["./configure" "--prefix=%{prefix}%" "--enable-debug-runtime"]
+  ["./configure" "--prefix=%{prefix}%" "--enable-debug-runtime" "--enable-flambda"]
   [make "-j%{jobs}%"]
 ]
 install: [make "install"]
-maintainer: "kc@kcsrk.info"
-homepage: "https://github.com/ocaml-multicore/ocaml-multicore"
-bug-reports: "https://github.com/ocaml-multicore/ocaml-multicore/issues"
+maintainer: "lingmar@kth.se"
+homepage: "https://github.com/miking-lang/ocaml-multicore"
+bug-reports: "https://github.com/miking-lang/ocaml-multicore/issues"
 authors: "Xavier Leroy and many contributors"

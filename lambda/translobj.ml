@@ -26,7 +26,7 @@ let consts : (structured_constant, Ident.t) Hashtbl.t = Hashtbl.create 17
 
 let share c =
   match c with
-    Const_block (_n, l) when l <> [] ->
+    Const_block (_n, l, _) when l <> [] ->
       begin try
         Lvar (Hashtbl.find consts c)
       with Not_found ->
@@ -125,7 +125,7 @@ let transl_label_init_flambda f =
 let transl_store_label_init glob size f arg =
   assert(not Config.flambda);
   assert(!Clflags.native_code);
-  method_cache := Lprim(Pfield (size, Pointer, Mutable),
+  method_cache := Lprim(Pfield (size, Pointer, Mutable, Fnone),
                         (* XXX KC: conservative *)
                         [Lprim(Pgetglobal glob, [], Location.none)],
                         Location.none);
@@ -179,7 +179,7 @@ let oo_wrap env req f x =
            List.fold_left
              (fun lambda id ->
                 Llet(StrictOpt, Pgenval, id,
-                     Lprim(Pmakeblock(0, Mutable, None),
+                     Lprim(Pmakeblock(0, Mutable, None, Tag_none),
                            [lambda_unit; lambda_unit; lambda_unit],
                            Location.none),
                      lambda))

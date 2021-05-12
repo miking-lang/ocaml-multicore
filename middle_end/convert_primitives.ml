@@ -24,9 +24,9 @@ let convert_unsafety is_unsafe : Clambda_primitives.is_safe =
 
 let convert (prim : Lambda.primitive) : Clambda_primitives.primitive =
   match prim with
-  | Pmakeblock (tag, mutability, shape) ->
+  | Pmakeblock (tag, mutability, shape, _) ->
       Pmakeblock (tag, mutability, shape)
-  | Pfield (field, imm_or_pointer, mutability) ->
+  | Pfield (field, imm_or_pointer, mutability, _) ->
       Pfield (field, imm_or_pointer, mutability)
   | Pfield_computed -> Pfield_computed
   | Psetfield (field, imm_or_pointer, init_or_assign) ->

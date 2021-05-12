@@ -859,8 +859,8 @@ let rec close ({ backend; fenv; cenv } as env) lam =
       let rec transl = function
         | Const_base(Const_int n) -> Uconst_int n
         | Const_base(Const_char c) -> Uconst_int (Char.code c)
-        | Const_pointer n -> Uconst_ptr n
-        | Const_block (tag, fields) ->
+        | Const_pointer(n, _) -> Uconst_ptr n
+        | Const_block (tag, fields, _) ->
             str (Uconst_block (tag, List.map transl fields))
         | Const_float_array sl ->
             (* constant float arrays are really immutable *)
@@ -1057,7 +1057,7 @@ let rec close ({ backend; fenv; cenv } as env) lam =
       let dbg = Debuginfo.from_location loc in
       check_constant_result (getglobal dbg id)
                             (Compilenv.global_approx id)
-  | Lprim(Pfield (n, ptr, mut), [lam], loc) ->
+  | Lprim(Pfield (n, ptr, mut, _), [lam], loc) ->
       let (ulam, approx) = close env lam in
       let dbg = Debuginfo.from_location loc in
       check_constant_result (Uprim(P.Pfield (n, ptr, mut), [ulam], dbg))
@@ -1137,7 +1137,7 @@ let rec close ({ backend; fenv; cenv } as env) lam =
       let (ubody, _) = close env body in
       let (uhandler, _) = close env handler in
       (Utrywith(ubody, VP.create id, uhandler), Value_unknown)
-  | Lifthenelse(arg, ifso, ifnot) ->
+  | Lifthenelse(arg, ifso, ifnot, _) ->
       begin match close env arg with
         (uarg, Value_const (Uconst_ptr n)) ->
           sequence_constant_expr uarg

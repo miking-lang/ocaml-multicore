@@ -81,10 +81,10 @@ let rec apply_coercion loc strict restr arg =
       name_lambda strict arg (fun id ->
         let get_field pos =
           if pos < 0 then lambda_unit
-          else Lprim(Pfield (pos, Pointer, Mutable), [Lvar id], loc)
+          else Lprim(Pfield (pos, Pointer, Mutable, Fnone), [Lvar id], loc)
         in
         let lam =
-          Lprim(Pmakeblock(0, Immutable, None),
+          Lprim(Pmakeblock(0, Immutable, None, Tag_none),
                 List.map (apply_coercion_field loc get_field) pos_cc_list,
                 loc)
         in
@@ -216,7 +216,8 @@ let undefined_location loc =
   Lconst(Const_block(0,
                      [Const_base(Const_string (fname, None));
                       Const_base(Const_int line);
-                      Const_base(Const_int char)]))
+                      Const_base(Const_int char)],
+                     Tag_none))
 
 exception Initialization_failure of unsafe_info
 
@@ -228,7 +229,7 @@ let init_shape id modl =
         raise (Initialization_failure
                 (Unsafe {reason=Unsafe_module_binding;loc;subid}))
     | Mty_signature sg ->
-        Const_block(0, [Const_block(0, init_shape_struct env sg)])
+        Const_block(0, [Const_block(0, init_shape_struct env sg, Tag_none)], Tag_none)
     | Mty_functor _ ->
         (* can we do better? *)
         raise (Initialization_failure
@@ -240,9 +241,9 @@ let init_shape id modl =
         let init_v =
           match Ctype.expand_head env ty with
             {desc = Tarrow(_,_,_,_)} ->
-              Const_pointer 0 (* camlinternalMod.Function *)
+              Const_pointer (0, Ptr_none) (* camlinternalMod.Function *)
           | {desc = Tconstr(p, _, _)} when Path.same p Predef.path_lazy_t ->
-              Const_pointer 1 (* camlinternalMod.Lazy *)
+              Const_pointer (1, Ptr_none) (* camlinternalMod.Lazy *)
           | _ ->
               let not_a_function =
                 Unsafe {reason=Unsafe_non_function; loc; subid }
@@ -268,7 +269,7 @@ let init_shape id modl =
     | Sig_modtype(id, minfo, _) :: rem ->
         init_shape_struct (Env.add_modtype id minfo env) rem
     | Sig_class _ :: rem ->
-        Const_pointer 2 (* camlinternalMod.Class *)
+        Const_pointer (2, Ptr_none) (* camlinternalMod.Class *)
         :: init_shape_struct env rem
     | Sig_class_type _ :: rem ->
         init_shape_struct env rem
@@ -530,7 +531,7 @@ and transl_structure loc fields cc rootpath final_env = function
       let body, size =
         match cc with
           Tcoerce_none ->
-            Lprim(Pmakeblock(0, Immutable, None),
+            Lprim(Pmakeblock(0, Immutable, None, Tag_none),
                   List.map (fun id -> Lvar id) (List.rev fields), loc),
               List.length fields
         | Tcoerce_structure(pos_cc_list, id_pos_list) ->
@@ -546,7 +547,7 @@ and transl_structure loc fields cc rootpath final_env = function
             in
             let ids = List.fold_right Ident.Set.add fields Ident.Set.empty in
             let lam =
-              Lprim(Pmakeblock(0, Immutable, None),
+              Lprim(Pmakeblock(0, Immutable, None, Tag_none),
                   List.map
                     (fun (pos, cc) ->
                       match cc with
@@ -692,7 +693,7 @@ and transl_structure loc fields cc rootpath final_env = function
                   rebind_idents (pos + 1) (id :: newfields) ids
                 in
                 Llet(Alias, Pgenval, id,
-                     Lprim(Pfield (pos, Pointer, Mutable),
+                     Lprim(Pfield (pos, Pointer, Mutable, Fnone),
                         [Lvar mid], incl.incl_loc), body),
                 size
           in
@@ -721,7 +722,7 @@ and transl_structure loc fields cc rootpath final_env = function
                     rebind_idents (pos + 1) (id :: newfields) ids
                   in
                   Llet(Alias, Pgenval, id,
-                       Lprim(Pfield (pos, Pointer, Mutable), [Lvar mid], od.open_loc),
+                       Lprim(Pfield (pos, Pointer, Mutable, Fnone), [Lvar mid], od.open_loc),
                        body),
                   size
               in
@@ -938,7 +939,7 @@ let transl_store_subst = ref Ident.Map.empty
 
 let nat_toplevel_name id =
   try match Ident.Map.find id !transl_store_subst with
-    | Lprim(Pfield (pos, _, _), [Lprim(Pgetglobal glob, [], _)], _) -> (glob,pos)
+    | Lprim(Pfield (pos, _, _, _), [Lprim(Pgetglobal glob, [], _)], _) -> (glob,pos)
     | _ -> raise Not_found
   with Not_found ->
     fatal_error("Translmod.nat_toplevel_name: " ^ Ident.unique_name id)
@@ -1028,7 +1029,7 @@ let transl_store_structure glob map prims aliases str =
             Lsequence(lam,
                       Llet(Strict, Pgenval, id,
                            Lambda.subst no_env_update subst
-                             (Lprim(Pmakeblock(0, Immutable, None),
+                             (Lprim(Pmakeblock(0, Immutable, None, Tag_none),
                                     List.map (fun id -> Lvar id)
                                       (defined_idents str.str_items), loc)),
                            Lsequence(store_ident loc id,
@@ -1057,7 +1058,7 @@ let transl_store_structure glob map prims aliases str =
             Lsequence(lam,
                       Llet(Strict, Pgenval, id,
                            Lambda.subst no_env_update subst
-                             (Lprim(Pmakeblock(0, Immutable, None),
+                             (Lprim(Pmakeblock(0, Immutable, None, Tag_none),
                                     List.map field map, loc)),
                            Lsequence(store_ident loc id,
                                      transl_store rootpath
@@ -1151,7 +1152,7 @@ let transl_store_structure glob map prims aliases str =
                 transl_store rootpath (add_idents true ids subst) cont rem
               | id :: idl ->
                   Llet(Alias, Pgenval, id,
-                       Lprim(Pfield (pos, Pointer, Mutable), [Lvar mid], loc),
+                       Lprim(Pfield (pos, Pointer, Mutable, Fnone), [Lvar mid], loc),
                        Lsequence(store_ident loc id,
                                  store_idents (pos + 1) idl))
             in
@@ -1196,7 +1197,7 @@ let transl_store_structure glob map prims aliases str =
                             rem
                       | id :: idl ->
                           Llet(Alias, Pgenval, id,
-                               Lprim(Pfield (pos, Pointer, Mutable), [Lvar mid], loc),
+                               Lprim(Pfield (pos, Pointer, Mutable, Fnone), [Lvar mid], loc),
                                Lsequence(store_ident loc id,
                                          store_idents (pos + 1) idl))
                     in
@@ -1229,7 +1230,7 @@ let transl_store_structure glob map prims aliases str =
       match cc with
         Tcoerce_none ->
           Ident.Map.add id
-            (Lprim(Pfield (pos, Pointer, Immutable),
+            (Lprim(Pfield (pos, Pointer, Immutable, Fnone),
                    [Lprim(Pgetglobal glob, [], Location.none)],
                    Location.none))
             subst
@@ -1361,7 +1362,7 @@ let toplevel_name id =
 let toploop_getvalue id =
   Lapply{ap_should_be_tailcall=false;
          ap_loc=Location.none;
-         ap_func=Lprim(Pfield (toploop_getvalue_pos, Pointer, Mutable),
+         ap_func=Lprim(Pfield (toploop_getvalue_pos, Pointer, Mutable, Fnone),
                        [Lprim(Pgetglobal toploop_ident, [], Location.none)],
                        Location.none);
          ap_args=[Lconst(Const_base(Const_string (toplevel_name id, None)))];
@@ -1371,7 +1372,7 @@ let toploop_getvalue id =
 let toploop_setvalue id lam =
   Lapply{ap_should_be_tailcall=false;
          ap_loc=Location.none;
-         ap_func=Lprim(Pfield (toploop_setvalue_pos, Pointer, Mutable),
+         ap_func=Lprim(Pfield (toploop_setvalue_pos, Pointer, Mutable, Fnone),
                        [Lprim(Pgetglobal toploop_ident, [], Location.none)],
                        Location.none);
          ap_args=[Lconst(Const_base(Const_string (toplevel_name id, None)));
@@ -1443,7 +1444,7 @@ let transl_toplevel_item item =
           lambda_unit
       | id :: ids ->
           Lsequence(toploop_setvalue id
-                      (Lprim(Pfield (pos, Pointer, Mutable), [Lvar mid], Location.none)),
+                      (Lprim(Pfield (pos, Pointer, Mutable, Fnone), [Lvar mid], Location.none)),
                     set_idents (pos + 1) ids) in
       Llet(Strict, Pgenval, mid,
            transl_module Tcoerce_none None modl, set_idents 0 ids)
@@ -1466,7 +1467,7 @@ let transl_toplevel_item item =
                 lambda_unit
             | id :: ids ->
                 Lsequence(toploop_setvalue id
-                            (Lprim(Pfield (pos, Pointer, Mutable), [Lvar mid], Location.none)),
+                            (Lprim(Pfield (pos, Pointer, Mutable, Fnone), [Lvar mid], Location.none)),
                           set_idents (pos + 1) ids)
           in
           Llet(pure, Pgenval, mid,
@@ -1505,13 +1506,13 @@ let transl_package_flambda component_names coercion =
   in
   size,
   apply_coercion Location.none Strict coercion
-    (Lprim(Pmakeblock(0, Immutable, None),
+    (Lprim(Pmakeblock(0, Immutable, None, Tag_none),
            List.map get_component component_names,
            Location.none))
 
 let transl_package component_names target_name coercion =
   let components =
-    Lprim(Pmakeblock(0, Immutable, None),
+    Lprim(Pmakeblock(0, Immutable, None, Tag_none),
           List.map get_component component_names, Location.none) in
   Lprim(Psetglobal target_name,
         [apply_coercion Location.none Strict coercion components],
@@ -1549,7 +1550,7 @@ let transl_store_package component_names target_name coercion =
          0 component_names)
   | Tcoerce_structure (pos_cc_list, _id_pos_list) ->
       let components =
-        Lprim(Pmakeblock(0, Immutable, None),
+        Lprim(Pmakeblock(0, Immutable, None, Tag_none),
               List.map get_component component_names,
               Location.none)
       in
@@ -1561,7 +1562,7 @@ let transl_store_package component_names target_name coercion =
                (fun pos _id ->
                  Lprim(Psetfield(pos, Pointer, Root_initialization),
                        [Lprim(Pgetglobal target_name, [], Location.none);
-                        Lprim(Pfield (pos, Pointer, Mutable), [Lvar blk], Location.none)],
+                        Lprim(Pfield (pos, Pointer, Mutable, Fnone), [Lvar blk], Location.none)],
                        Location.none))
                0 pos_cc_list))
   (*
